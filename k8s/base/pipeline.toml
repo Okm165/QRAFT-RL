@@ -1,0 +1,105 @@
+# Generic Kubernetes profile. Paths match the pod volume mounts.
+# Semantic prompts live in cli/config.py defaults; override them here if needed.
+
+[run]
+name = "k8s"
+output = "/run"
+
+[input]
+path = "/data"
+glob = "*.md"
+limit = 0
+
+[preprocess]
+llm_limit = 100
+llm_max_tokens = 2048
+window_chars = 6000
+overlap_chars = 400
+
+[questions]
+base_url = "http://qraft-llm.qraft.svc.cluster.local:8000/v1"
+base_urls = ["http://qraft-llm.qraft.svc.cluster.local:8000/v1"]
+model = "qwen3.8-27b"
+workers = 8
+per_chunk = 12
+limit = 1000
+holdout_every = 5
+chunks = 0
+max_tokens = 2048
+temperature = 0.2
+
+[answer]
+refusal = "I do not have enough evidence in the corpus to answer this."
+
+[judge]
+max_tokens = 512
+temperature = 0.0
+
+[llm]
+base_url = "http://qraft-llm.qraft.svc.cluster.local:8000/v1"
+base_urls = ["http://qraft-llm.qraft.svc.cluster.local:8000/v1"]
+workers = 8
+context = 196608
+model = "qwen3.8-27b"
+api_key = "local"
+timeout = 600
+max_tokens = 2048
+temperature = 0.0
+
+[rag]
+top_k = 5
+
+[raft]
+distractors = 4
+absent_every = 5
+seed = 42
+
+[train]
+model = "/models/qwen3.8-27b-nf4"
+dtype = "bfloat16"
+quantize = "pre4bit"
+parallel = "model"
+world_size = 3
+# 810 = moderately long: about two epochs on 1k Q&A
+max_steps = 810
+batch_size = 1
+grad_accum = 2
+max_length = 2048
+learning_rate = 0.00002
+warmup_steps = 40
+save_steps = 90
+eval_steps = 90
+val_fraction = 0.0
+lora_r = 16
+lora_alpha = 32
+lora_dropout = 0.05
+lora_targets = "q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj,in_proj_qkv,out_proj"
+min_weight = 0.5
+allow_truncation = false
+attn = "sdpa"
+optimizer = "adamw_torch"
+gradient_checkpointing = false
+
+[eval]
+top_k = 6
+max_new_tokens = 512
+limit = 0
+fail_below = 0.0
+fail_below_answer = 0.0
+fail_below_refusal = 0.0
+refusal_questions = [
+  "What is the weather in Munich today?",
+  "Who won the 2024 World Cup?",
+  "What is the capital of France?",
+]
+
+[runtime]
+
+[runtime.env]
+HF_HOME = "/hf"
+HF_HUB_OFFLINE = "1"
+TRANSFORMERS_OFFLINE = "1"
+HSA_ENABLE_IPC_MODE_LEGACY = "0"
+NCCL_P2P_DISABLE = "0"
+NCCL_ALGO = "Ring"
+PYTHONUNBUFFERED = "1"

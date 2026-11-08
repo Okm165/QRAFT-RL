@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: qraft
+resources:
+  - namespace.yaml
+  - pvc.yaml
+  - llm.yaml
+  - runner.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+configMapGenerator:
+  - name: qraft-config
+    files:
+      - pipeline.toml

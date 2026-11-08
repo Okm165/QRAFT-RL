@@ -1,0 +1,151 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: qraft-llm
+  namespace: qraft
+  labels:
+    app: qraft-llm
+    app.kubernetes.io/part-of: qraft-rl
+spec:
+  selector:
+    app: qraft-llm
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: qraft-llm
+  namespace: qraft
+  labels:
+    app: qraft-llm
+    app.kubernetes.io/part-of: qraft-rl
+spec:
+  serviceName: qraft-llm
+  replicas: 1
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: qraft-llm
+  template:
+    metadata:
+      labels:
+        app: qraft-llm
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: llm
+          image: docker.io/qraft-rl/llama-27b:local
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              adapter=/models/adapters/qwen3.8-27b-lora.gguf
+              set -- llama-server \
+                --model /models/qwen3.8-27b-gguf/Qwen3.8-27B-UD-Q4_K_M.gguf \
+                --alias qwen3.8-27b \
+                --host 0.0.0.0 \
+                --port 8000 \
+                --n-gpu-layers 99 \
+                --split-mode layer \
+                --tensor-split "${LLM_TENSOR_SPLIT:-1,1,1}" \
+                --parallel "${LLM_PARALLEL:-8}" \
+                --threads "${LLM_THREADS:-8}" \
+                --threads-batch "${LLM_THREADS_BATCH:-8}" \
+                --cont-batching \
+                --flash-attn "${LLM_FLASH_ATTN:-auto}" \
+                --cache-type-k "${LLM_CACHE_K:-f16}" \
+                --cache-type-v "${LLM_CACHE_V:-f16}" \
+                --cache-reuse "${LLM_CACHE_REUSE:-0}" \
+                --ctx-size "${LLM_CTX:-196608}"
+              if [ -f "$adapter" ]; then
+                set -- "$@" --lora "$adapter" --lora-init-without-apply
+              fi
+              if [ "${LLM_SPEC_TYPE:-draft-mtp}" != "off" ]; then
+                set -- "$@" --spec-type "${LLM_SPEC_TYPE:-draft-mtp}" \
+                  --spec-draft-n-max "${LLM_SPEC_N_MAX:-3}"
+              fi
+              exec "$@"
+          env:
+            - name: LLM_CTX
+              value: "196608"
+            - name: LLM_PARALLEL
+              value: "8"
+            - name: LLM_TENSOR_SPLIT
+              value: "1,1,1"
+            - name: LLM_THREADS
+              value: "8"
+            - name: LLM_THREADS_BATCH
+              value: "8"
+            - name: LLM_SPEC_TYPE
+              value: "draft-mtp"
+            - name: LLM_SPEC_N_MAX
+              value: "3"
+            - name: LLM_FLASH_ATTN
+              value: "auto"
+            - name: LLM_CACHE_K
+              value: "f16"
+            - name: LLM_CACHE_V
+              value: "f16"
+            - name: LLM_CACHE_REUSE
+              value: "0"
+            - name: HF_HOME
+              value: /hf
+            - name: HF_HUB_OFFLINE
+              value: "1"
+            - name: TRANSFORMERS_OFFLINE
+              value: "1"
+            - name: HSA_ENABLE_IPC_MODE_LEGACY
+              value: "0"
+          ports:
+            - name: http
+              containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "1"
+              memory: 4Gi
+            limits:
+              amd.com/gpu: "3"
+              cpu: "8"
+              memory: 16Gi
+          volumeMounts:
+            - name: models
+              mountPath: /models
+              readOnly: true
+            - name: hf-cache
+              mountPath: /hf
+              readOnly: true
+            - name: shm
+              mountPath: /dev/shm
+            - name: kfd
+              mountPath: /dev/kfd
+            - name: dri
+              mountPath: /dev/dri
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: qraft-models
+            readOnly: true
+        - name: hf-cache
+          persistentVolumeClaim:
+            claimName: qraft-hf-cache
+            readOnly: true
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 4Gi
+        - name: kfd
+          hostPath:
+            path: /dev/kfd
+        - name: dri
+          hostPath:
+            path: /dev/dri

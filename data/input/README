@@ -1,0 +1,19 @@
+# Input corpus
+
+Put top-level Markdown files in this folder. The pipeline reads the files
+matched by `[input] glob` (default `*.md`); subdirectories are not traversed.
+
+The local Kubernetes overlay reads `/srv/qraft/corpus`. The local setup makes
+that path a symlink to this folder:
+
+```bash
+./scripts/use-input.sh
+```
+
+Then `data/input` is visible inside the runner as `/data`.
+
+A synthetic example is tracked in this folder as `example.md` for a smoke
+test. Replace it with your own Markdown files for the full 1k run.
+
+Input documents are gitignored except `README` and `example.md`. Do not commit
+private or licensed files.

@@ -1,0 +1,93 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: qraft
+resources:
+  - ../../base
+  - pv.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+configMapGenerator:
+  - name: qraft-config
+    behavior: replace
+    files:
+      - pipeline.toml
+patches:
+  - target:
+      kind: PersistentVolumeClaim
+      name: qraft-corpus
+    patch: |-
+      - op: add
+        path: /spec/storageClassName
+        value: manual
+  - target:
+      kind: PersistentVolumeClaim
+      name: qraft-runs
+    patch: |-
+      - op: add
+        path: /spec/storageClassName
+        value: manual
+  - target:
+      kind: PersistentVolumeClaim
+      name: qraft-models
+    patch: |-
+      - op: add
+        path: /spec/storageClassName
+        value: manual
+  - target:
+      kind: PersistentVolumeClaim
+      name: qraft-hf-cache
+    patch: |-
+      - op: add
+        path: /spec/storageClassName
+        value: manual
+  - target:
+      kind: StatefulSet
+      name: qraft-llm
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: remove
+        path: /spec/template/spec/containers/0/resources/limits/amd.com~1gpu
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 20Gi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 20Gi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: "8"
+      - op: add
+        path: /spec/template/spec/containers/0/securityContext
+        value:
+          privileged: true
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: HIP_VISIBLE_DEVICES
+          value: "0,1,2"
+  - target:
+      kind: Deployment
+      name: qraft-runner
+    patch: |-
+      - op: remove
+        path: /spec/template/spec/containers/0/resources/requests/amd.com~1gpu
+      - op: remove
+        path: /spec/template/spec/containers/0/resources/limits/amd.com~1gpu
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 24Gi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 24Gi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: "8"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "8"
+      - op: add
+        path: /spec/template/spec/containers/0/securityContext
+        value:
+          privileged: true

@@ -1,0 +1,19 @@
+.venv/
+.cache/
+.context/
+data/processed/
+data/subset/
+data/runs/
+data/k8s-runs/
+data/raw/
+runs/
+.data/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# User corpus: keep the folder, ignore the documents
+data/input/*
+!data/input/README
+!data/input/example.md

@@ -1,0 +1,110 @@
+# Single-node local overlay storage. The base manifests stay provisioner-agnostic;
+# this overlay binds the claims to existing host paths so no data is copied.
+# The paths below are outside the repo by design. Edit them for your host.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: qraft-corpus-pv
+  labels:
+    app.kubernetes.io/part-of: qraft-rl
+spec:
+  capacity:
+    storage: 50Gi
+  accessModes: [ReadWriteOnce]
+  volumeMode: Filesystem
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  claimRef:
+    namespace: qraft
+    name: qraft-corpus
+  hostPath:
+    path: /srv/qraft/corpus
+    type: Directory
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: [localhost.localdomain]
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: qraft-runs-pv
+  labels:
+    app.kubernetes.io/part-of: qraft-rl
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes: [ReadWriteOnce]
+  volumeMode: Filesystem
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  claimRef:
+    namespace: qraft
+    name: qraft-runs
+  hostPath:
+    path: /srv/qraft/runs
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: [localhost.localdomain]
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: qraft-models-pv
+  labels:
+    app.kubernetes.io/part-of: qraft-rl
+spec:
+  capacity:
+    storage: 50Gi
+  accessModes: [ReadWriteOnce]
+  volumeMode: Filesystem
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  claimRef:
+    namespace: qraft
+    name: qraft-models
+  hostPath:
+    path: /srv/qraft/models
+    type: Directory
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: [localhost.localdomain]
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: qraft-hf-cache-pv
+  labels:
+    app.kubernetes.io/part-of: qraft-rl
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes: [ReadWriteOnce]
+  volumeMode: Filesystem
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  claimRef:
+    namespace: qraft
+    name: qraft-hf-cache
+  hostPath:
+    path: /srv/qraft/hf-cache
+    type: Directory
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: [localhost.localdomain]

@@ -1,0 +1,46 @@
+# Storage is intentionally provisioner-agnostic: the cluster default class
+# supplies the volumes. Pre-populate the corpus, model, and HF cache claims
+# before running the pipeline.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qraft-corpus
+  namespace: qraft
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qraft-runs
+  namespace: qraft
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qraft-models
+  namespace: qraft
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qraft-hf-cache
+  namespace: qraft
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 100Gi

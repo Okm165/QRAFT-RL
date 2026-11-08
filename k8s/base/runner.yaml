@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qraft-runner
+  namespace: qraft
+  labels:
+    app.kubernetes.io/name: qraft-runner
+    app.kubernetes.io/part-of: qraft-rl
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: qraft-runner
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: qraft-runner
+    spec:
+      restartPolicy: Always
+      automountServiceAccountToken: false
+      containers:
+        - name: runner
+          image: docker.io/qraft-rl/runner:local
+          imagePullPolicy: IfNotPresent
+          command: ["sleep", "infinity"]
+          env:
+            - name: HF_HOME
+              value: /hf
+            - name: HF_HUB_OFFLINE
+              value: "1"
+            - name: TRANSFORMERS_OFFLINE
+              value: "1"
+            - name: HSA_ENABLE_IPC_MODE_LEGACY
+              value: "0"
+            - name: NCCL_P2P_DISABLE
+              value: "0"
+            - name: NCCL_ALGO
+              value: Ring
+            - name: HIP_VISIBLE_DEVICES
+              value: "0,1,2"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          resources:
+            requests:
+              cpu: "2"
+              memory: 8Gi
+              amd.com/gpu: "3"
+            limits:
+              cpu: "32"
+              memory: 32Gi
+              amd.com/gpu: "3"
+          volumeMounts:
+            - name: corpus
+              mountPath: /data
+              readOnly: true
+            - name: runs
+              mountPath: /run
+            - name: hf-cache
+              mountPath: /hf
+              readOnly: true
+            - name: models
+              mountPath: /models
+              readOnly: false
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: shm
+              mountPath: /dev/shm
+            - name: kfd
+              mountPath: /dev/kfd
+            - name: dri
+              mountPath: /dev/dri
+      volumes:
+        - name: corpus
+          persistentVolumeClaim:
+            claimName: qraft-corpus
+            readOnly: true
+        - name: runs
+          persistentVolumeClaim:
+            claimName: qraft-runs
+        - name: hf-cache
+          persistentVolumeClaim:
+            claimName: qraft-hf-cache
+            readOnly: true
+        - name: models
+          persistentVolumeClaim:
+            claimName: qraft-models
+            readOnly: false
+        - name: config
+          configMap:
+            name: qraft-config
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 16Gi
+        - name: kfd
+          hostPath:
+            path: /dev/kfd
+        - name: dri
+          hostPath:
+            path: /dev/dri
